@@ -61,7 +61,7 @@ async function generate(){
     document.getElementById("info").innerHTML=
       `Ref: ${data.ref}<br>Color: ${data.color}<br>Batch: ${data.batch}<br>Roll: ${data.roll_no}<br>Length: ${data.length}M`;
 
-    const url=window.location.origin + "/FabricQR/roll.html?id=" + id;
+    const url = location.origin + "/roll.html?id=" + id;
     const canvas=document.getElementById("qrcode");
     lastCanvas=canvas;
     QRCode.toCanvas(canvas,url,{width:120});
