@@ -44,14 +44,17 @@ function generateQR() {
   const roll_number = document.getElementById('roll_number').value;
   const order_number = document.getElementById('order_number').value;
 
-  // 生成二维码 URL
-  const qrUrl = `https://fabricsystem.vercel.app/view.html?id=${roll_number}`;
+  // 生成一个唯一的 ID，用于识别面料数据
+  const id = "roll_" + Date.now();
+
+  // 生成二维码 URL，包含唯一的 ID
+  const qrUrl = `https://fabricsystem.vercel.app/view.html?id=${id}`;
 
   // 生成二维码
   const qr = new QRious({
     element: document.getElementById('qr'),
     value: qrUrl,
-    size: 180 // 调整为适合 40mm 打印
+    size: 180 // 设置二维码的尺寸为适合 40mm 打印
   });
 
   // 显示面料信息
@@ -65,6 +68,39 @@ function generateQR() {
     <div>Roll#: ${roll_number}</div>
     <div>Order#: ${order_number}</div>
   `;
+
+  // 使用 Fetch API 将面料信息和二维码的 ID 写入到 Supabase
+  const data = {
+    id: id,
+    ref: ref,
+    batch: batch,
+    size: width,  // 替换为 width
+    color: color,
+    length: length,
+    roll_number: roll_number,
+    order_number: order_number
+  };
+
+  // Supabase API 调用，插入数据
+  fetch('https://nbzlglatwvomrhflqvgi.supabase.co/rest/v1/rolls', {
+    method: 'POST',
+    headers: {
+      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs',
+      'Authorization': 'Bearer <你的 anon public key>',
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('成功写入 Supabase:', data);
+    alert('二维码生成并保存到数据库！');
+  })
+  .catch((error) => {
+    console.error('写入失败:', error);
+    alert('写入数据失败，请查看控制台！');
+  });
 }
 </script>
 
