@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fabric QR Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+body{font-family:Arial;padding:20px;}
+input{display:block;margin:5px 0;padding:5px;width:200px;}
+button{margin:5px 5px 5px 0;padding:8px 15px;}
+#label{width:70mm;height:50mm;border:1px solid #000;padding:3mm;box-sizing:border-box;margin-top:10px;}
+.text{font-size:10px;}.qr{float:right;}
+</style>
+</head>
+<body>
+<h3>Fabric QR System</h3>
+<input id="ref" placeholder="Reference">
+<input id="batch" placeholder="Batch">
+<input id="width" placeholder="Width">
+<input id="length" placeholder="Length (M)">
+<input id="color" placeholder="Color">
+<input id="order" placeholder="Order No">
+<button onclick="generate()">生成二维码</button>
+<button onclick="savePNG()">保存为 PNG</button>
+<div id="label">
+  <div class="text" id="info"></div>
+  <canvas id="qrcode" class="qr"></canvas>
+</div>
+<script>
+const SUPABASE_URL="https://nbzlglatwvomrhflqvgi.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs";
+let lastCanvas=null;
+
+async function generate(){
+    const id="R"+Date.now();
+    let rollNo,exists=true;
+    while(exists){
+        rollNo="R"+new Date().toISOString().slice(0,10).replace(/-/g,"")+Math.floor(Math.random()*9000+1000);
+        const check=await fetch(`${SUPABASE_URL}/rest/v1/rolls?roll_no=eq.${rollNo}`,{
+            headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+        });
+        const checkData=await check.json();
+        exists=checkData.length>0;
+    }
+    const data={
+        id:id,
+        ref:document.getElementById("ref").value,
+        batch:document.getElementById("batch").value,
+        width:document.getElementById("width").value,
+        length:document.getElementById("length").value,
+        color:document.getElementById("color").value,
+        roll_no:rollNo,
+        order_no:document.getElementById("order").value
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/rolls`,{
+        method:"POST",
+        headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+        body:JSON.stringify(data)
+    });
+
+    document.getElementById("info").innerHTML=
+      `Ref: ${data.ref}<br>Color: ${data.color}<br>Batch: ${data.batch}<br>Roll: ${data.roll_no}<br>Length: ${data.length}M`;
+
+    const url="https://你的项目.vercel.app/roll.html?id="+id;
+    const canvas=document.getElementById("qrcode");
+    lastCanvas=canvas;
+    QRCode.toCanvas(canvas,url,{width:120});
+}
+
+function savePNG(){
+    if(!lastCanvas){alert("请先生成二维码"); return;}
+    const link=document.createElement("a");
+    link.href=lastCanvas.toDataURL("image/png");
+    link.download="FabricQR.png";
+    link.click();
+}
+</script>
+</body>
+</html>

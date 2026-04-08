@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fabric History</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+body{font-family:Arial;padding:20px;}table{border-collapse:collapse;width:100%;margin-top:20px;}th,td{border:1px solid #ccc;padding:8px;text-align:center;}button{margin-top:10px;padding:6px 12px;}
+</style>
+</head>
+<body>
+<h2>Fabric History</h2>
+<input id="searchInput" placeholder="搜索卷号/Ref/Batch">
+<button id="searchBtn">搜索</button>
+<button onclick="exportExcel()">导出Excel</button>
+<table id="historyTable">
+<thead><tr><th>Ref</th><th>Batch</th><th>Color</th><th>Width</th><th>Length(M)</th><th>Roll No</th><th>Order No</th></tr></thead>
+<tbody></tbody>
+</table>
+<script>
+const SUPABASE_URL="https://nbzlglatwvomrhflqvgi.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs";
+async function loadHistory(filter=""){
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/rolls`,{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
+    let data=await res.json();
+    if(filter) data=data.filter(d=>d.roll_no.includes(filter)||d.ref.includes(filter)||d.batch.includes(filter));
+    const tbody=document.querySelector("#historyTable tbody");tbody.innerHTML="";
+    data.forEach(d=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${d.ref}</td><td>${d.batch}</td><td>${d.color}</td><td>${d.width}</td><td>${d.length}</td><td>${d.roll_no}</td><td>${d.order_no}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+function exportExcel(){
+    const wb=XLSX.utils.book_new();
+    const table=document.getElementById("historyTable");
+    const ws=XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb,ws,"FabricHistory");
+    XLSX.writeFile(wb,"FabricHistory.xlsx");
+}
+document.getElementById("searchBtn").onclick=()=>loadHistory(document.getElementById("searchInput").value);
+loadHistory();
+</script>
+</body>
+</html>
