@@ -52,16 +52,24 @@ async function generate(){
         roll_no:rollNo,
         order_no:document.getElementById("order").value
     };
-    await fetch(`${SUPABASE_URL}/rest/v1/rolls`,{
-  method:"POST",
-  headers:{
-    "apikey": SUPABASE_KEY,
-    "Authorization": "Bearer " + SUPABASE_KEY,
-    "Content-Type":"application/json",
-    "Prefer":"return=minimal"
-  },
-  body: JSON.stringify(data)
+const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls`,{
+    method:"POST",
+    headers:{
+        "apikey":SUPABASE_KEY,
+        "Authorization":"Bearer "+SUPABASE_KEY,
+        "Content-Type":"application/json"
+    },
+    body:JSON.stringify(data)
 });
+
+const text = await res.text();
+console.log("返回结果:", text);
+
+if(res.ok){
+    alert("✅ 写入成功");
+}else{
+    alert("❌ 写入失败");
+}
 
     document.getElementById("info").innerHTML=
       `Ref: ${data.ref}<br>Color: ${data.color}<br>Batch: ${data.batch}<br>Roll: ${data.roll_no}<br>Length: ${data.length}M`;
