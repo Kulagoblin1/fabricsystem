@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Fabric Information</title>
+<style>
+body { font-family: Arial; padding: 20px; }
+h2 { color: #333; }
+.info { margin: 10px 0; }
+</style>
+</head>
+<body>
+<h2>Fabric Information</h2>
+<div id="info">加载中...</div>
+
+<script>
+const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs";
+let lastCanvas=null";
+
+async function fetchData(id) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls?id=eq.${id}`, {
+        headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY
+        }
+    });
+    const data = await res.json();
+    return data[0];
+}
+
+const params = new URLSearchParams(window.location.search);
+const rollId = params.get("id");
+
+if (!rollId) document.getElementById("info").innerText = "无效二维码";
+else {
+    fetchData(rollId).then(data => {
+        if (!data) document.getElementById("info").innerText = "未找到数据";
+        else document.getElementById("info").innerHTML = `
+            <div class="info">参考号: ${data.ref}</div>
+            <div class="info">批次: ${data.batch}</div>
+            <div class="info">尺寸: ${data.size}</div>
+            <div class="info">颜色: ${data.color}</div>
+            <div class="info">米数: ${data.length} M</div>
+            <div class="info">卷号: ${data.roll_number}</div>
+            <div class="info">订单号: ${data.order_number}</div>
+        `;
+    }).catch(err => {
+        console.error(err);
+        document.getElementById("info").innerText = "加载数据失败";
+    });
+}
+</script>
+</body>
+</html>
