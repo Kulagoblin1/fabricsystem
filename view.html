@@ -1,71 +1,78 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>Fabric Information</title>
-<style>
-body { font-family: Arial; padding: 20px; }
-h2 { color: #333; }
-.info { margin: 10px 0; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric Information</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h2 { margin-bottom: 15px; }
+        .info { margin-bottom: 10px; font-size: 16px; }
+    </style>
 </head>
 <body>
+
 <h2>Fabric Information</h2>
 <div id="info">加载中...</div>
 
 <script>
-const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs";
-let lastCanvas=null";
+    // 替换为你自己的 Supabase 项目 URL 和 anon public key
+    const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co"; // 替换
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs"; // 替换
 
-async function fetchData(id) {
-    console.log(`正在查询 ID: ${id}`); // 日志输出，查看查询的 ID
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls?id=eq.${id}`, {
-        headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": "Bearer " + SUPABASE_KEY
+    // 获取 URL 中的 id 参数
+    const params = new URLSearchParams(window.location.search);
+    const rollId = params.get("id");
+
+    if (!rollId) {
+        document.getElementById("info").innerText = "无效二维码";
+        console.log("没有提供 id 参数");
+    } else {
+        fetchData(rollId);
+    }
+
+    async function fetchData(id) {
+        console.log("正在查询 ID:", id);
+
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls?id=eq.${id}`, {
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (!res.ok) {
+                console.error("请求失败，状态码:", res.status, await res.text());
+                document.getElementById("info").innerText = "加载数据失败";
+                return;
+            }
+
+            const data = await res.json();
+            console.log("查询结果:", data);
+
+            if (!data || data.length === 0) {
+                document.getElementById("info").innerText = "未找到数据";
+            } else {
+                const d = data[0];
+                document.getElementById("info").innerHTML = `
+                    <div class="info">参考号: ${d.ref}</div>
+                    <div class="info">批次: ${d.batch}</div>
+                    <div class="info">尺寸: ${d.size}</div>
+                    <div class="info">颜色: ${d.color}</div>
+                    <div class="info">米数: ${d.length} M</div>
+                    <div class="info">卷号: ${d.roll_number}</div>
+                    <div class="info">订单号: ${d.order_number}</div>
+                `;
+            }
+
+        } catch (err) {
+            console.error("查询异常:", err);
+            document.getElementById("info").innerText = "加载数据异常";
         }
-    });
-
-    const data = await res.json();
-    console.log("查询结果:", data); // 输出返回的数据，查看是否成功获取
-
-    return data[0]; // 返回第一条数据
-}
-
-const params = new URLSearchParams(window.location.search);
-const rollId = params.get("id");
-
-if (!rollId) document.getElementById("info").innerText = "无效二维码";
-else {
-    fconst params = new URLSearchParams(window.location.search);
-const rollId = params.get("id"); // 获取 URL 中的 id 参数
-
-if (!rollId) {
-    document.getElementById("info").innerText = "无效二维码";
-    console.log("没有提供有效的 ID");
-} else {
-    fetchData(rollId).then(data => {
-        if (!data) {
-            document.getElementById("info").innerText = "未找到数据";
-            console.log("没有找到数据，查询结果为空");
-        } else {
-            document.getElementById("info").innerHTML = `
-                <div class="info">参考号: ${data.ref}</div>
-                <div class="info">批次: ${data.batch}</div>
-                <div class="info">尺寸: ${data.size}</div>
-                <div class="info">颜色: ${data.color}</div>
-                <div class="info">米数: ${data.length} M</div>
-                <div class="info">卷号: ${data.roll_number}</div>
-                <div class="info">订单号: ${data.order_number}</div>
-            `;
-            console.log("数据已显示:", data);
-        }
-    }).catch(err => {
-        console.error("查询数据失败:", err);
-        document.getElementById("info").innerText = "加载数据失败";
-    });
-}
+    }
 </script>
+
 </body>
 </html>
