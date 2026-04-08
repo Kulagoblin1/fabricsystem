@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>Fabric QR Generator - Batch</title>
-<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
-<style>
-body { font-family: Arial; padding: 20px; }
-label { display: block; margin-top: 10px; }
-input { margin-bottom: 5px; width: 200px; }
-button { margin-top: 15px; padding: 8px 15px; margin-right: 10px; }
-#qr { margin-top: 20px; }
-#printArea { display:none; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric QR Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        label { display: block; margin-top: 10px; }
+        input { margin-bottom: 5px; width: 200px; }
+        button { margin-top: 15px; padding: 8px 15px; margin-right: 10px; }
+        #qr { margin-top: 20px; }
+    </style>
 </head>
 <body>
 
-<h2>Fabric QR Generator - Batch</h2>
+<h2>Fabric QR Generator</h2>
 
-<!-- 单条数据输入 -->
 <label>参考号 (ref): <input type="text" id="ref"></label>
 <label>批次 (batch): <input type="text" id="batch"></label>
 <label>尺寸 (size): <input type="text" id="size"></label>
@@ -27,151 +26,58 @@ button { margin-top: 15px; padding: 8px 15px; margin-right: 10px; }
 <label>订单号 (order_number): <input type="text" id="order_number"></label>
 
 <button id="generateBtn">生成二维码</button>
-<button id="printBtn">打印标签 (70x50mm)</button>
-
-<!-- 批量导入 -->
-<label for="csvFile">批量导入 CSV:</label>
-<input type="file" id="csvFile" accept=".csv">
-<button id="importBtn">导入数据</button>
 
 <canvas id="qr"></canvas>
 
-<div id="printArea">
-  <div style="width:70mm; height:50mm; text-align:center; font-size:12px;">
-    <canvas id="qrPrint"></canvas>
-    <div id="infoPrint"></div>
-  </div>
-</div>
-
 <script>
-const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co"; // 替换
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs"; // 替换
+    // 替换为你自己的 Supabase 项目 URL 和 anon public key
+    const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co"; // 替换
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs"; // 替换
 
-let batchData = []; // 用于存储批量导入的数据
+    // 按钮点击事件
+    document.getElementById("generateBtn").addEventListener("click", generate);
 
-document.getElementById("generateBtn").addEventListener("click", generate);
-document.getElementById("printBtn").addEventListener("click", printLabel);
-document.getElementById("importBtn").addEventListener("click", importCSV);
+    // 生成二维码函数
+    async function generate() {
+        const data = {
+            id: "roll_" + Date.now(),  // 自动生成一个唯一 ID
+            ref: document.getElementById("ref").value,
+            batch: document.getElementById("batch").value,
+            size: document.getElementById("size").value,
+            color: document.getElementById("color").value,
+            length: parseFloat(document.getElementById("length").value),
+            roll_number: document.getElementById("roll_number").value,
+            order_number: document.getElementById("order_number").value
+        };
 
-// 单条数据生成二维码
-async function generate() {
-    const data = {
-        id: "roll_" + Date.now(),
-        ref: document.getElementById("ref").value,
-        batch: document.getElementById("batch").value,
-        size: document.getElementById("size").value,
-        color: document.getElementById("color").value,
-        length: parseFloat(document.getElementById("length").value),
-        roll_number: document.getElementById("roll_number").value,
-        order_number: document.getElementById("order_number").value
-    };
+        const qrUrl = `${window.location.origin}/view.html?id=${data.id}`;  // 生成包含 id 参数的 URL
 
- // 原二维码生成代码（例如在 index.html 中）
-const qrUrl = `${window.location.origin}/view.html?id=${data.id}`;
-new QRious({ element: document.getElementById("qr"), value: qrUrl, size: 200 });
+        // 用 QRious 库生成二维码
+        new QRious({ element: document.getElementById("qr"), value: qrUrl, size: 200 });
 
-    // 绘制二维码
-    new QRious({ element: document.getElementById("qr"), value: qrUrl, size: 200 });
+        // 写入 Supabase 数据库
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls`, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=representation"
+                },
+                body: JSON.stringify(data)
+            });
 
-    // 写入 Supabase
-    try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls`, {
-            method: "POST",
-            headers: {
-                "apikey": SUPABASE_KEY,
-                "Authorization": "Bearer " + SUPABASE_KEY,
-                "Content-Type": "application/json",
-                "Prefer": "return=representation"
-            },
-            body: JSON.stringify(data)
-        });
+            const text = await res.text();
+            console.log("返回结果:", text);
 
-        const text = await res.text();
-        console.log("返回结果:", text);
-
-        if (res.ok) alert("✅ 写入成功");
-        else alert("❌ 写入失败，请查看控制台");
-    } catch (err) {
-        console.error("请求异常:", err);
-        alert("❌ 请求异常，请查看控制台");
+            if (res.ok) alert("✅ 写入成功");
+            else alert("❌ 写入失败，请查看控制台");
+        } catch (err) {
+            console.error("请求异常:", err);
+            alert("❌ 请求异常，请查看控制台");
+        }
     }
-}
-
-// 批量导入 CSV 文件
-function importCSV() {
-    const file = document.getElementById("csvFile").files[0];
-    if (!file) return alert("请上传 CSV 文件");
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const content = e.target.result;
-        const rows = content.split("\n");
-
-        rows.forEach(row => {
-            const columns = row.split(",");
-            if (columns.length === 7) {
-                const data = {
-                    id: "roll_" + Date.now(),
-                    ref: columns[0],
-                    batch: columns[1],
-                    size: columns[2],
-                    color: columns[3],
-                    length: parseFloat(columns[4]),
-                    roll_number: columns[5],
-                    order_number: columns[6]
-                };
-                batchData.push(data);
-            }
-        });
-
-        alert(`${batchData.length} 条数据导入成功`);
-    };
-
-    reader.readAsText(file);
-}
-
-// 批量打印标签
-function printLabel() {
-    if (batchData.length === 0) {
-        alert("没有数据可打印");
-        return;
-    }
-
-    const printContent = batchData.map(data => {
-        return `
-            <div style="width:70mm; height:50mm; text-align:center; font-size:12px;">
-                <canvas style="width:70mm; height:70mm;" class="qrPrint"></canvas>
-                <div class="infoPrint">
-                    参考号: ${data.ref}<br>
-                    批次: ${data.batch}<br>
-                    尺寸: ${data.size}<br>
-                    颜色: ${data.color}<br>
-                    米数: ${data.length} M<br>
-                    卷号: ${data.roll_number}<br>
-                    订单号: ${data.order_number}
-                </div>
-            </div>
-        `;
-    }).join("");
-
-    const WinPrint = window.open('', '', 'width=800,height=600');
-    WinPrint.document.write(printContent);
-    WinPrint.document.close();
-
-    // 为每个标签生成二维码
-    const qrCanvases = WinPrint.document.querySelectorAll('.qrPrint');
-    batchData.forEach((data, idx) => {
-        const qr = new QRious({
-            element: qrCanvases[idx],
-            value: `${window.location.origin}/view.html?id=${data.id}`,
-            size: 100
-        });
-    });
-
-    WinPrint.focus();
-    WinPrint.print();
-    WinPrint.close();
-}
 </script>
 
 </body>
