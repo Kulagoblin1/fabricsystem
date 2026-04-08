@@ -66,11 +66,9 @@ async function generate() {
         order_number: document.getElementById("order_number").value
     };
 
-   // 假设 data 是刚写入 Supabase 的记录
+ // 原二维码生成代码（例如在 index.html 中）
 const qrUrl = `${window.location.origin}/view.html?id=${data.id}`;
-
-// 用这个 URL 生成二维码
-generateQRCode(qrUrl);
+new QRious({ element: document.getElementById("qr"), value: qrUrl, size: 200 });
 
     // 绘制二维码
     new QRious({ element: document.getElementById("qr"), value: qrUrl, size: 200 });
