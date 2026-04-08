@@ -6,9 +6,24 @@
 <title>Fabric QR Generator</title>
 <style>
   body { font-family: Arial; padding: 20px; }
-  #label { width: 70mm; height: 50mm; border: 1px solid #000; display: flex; align-items: center; justify-content: flex-start; padding: 5px; box-sizing: border-box; }
+  #label {
+    width: 70mm;
+    height: 50mm;
+    border: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 5px;
+    box-sizing: border-box;
+  }
   #qr { width: 40mm; height: 40mm; }
-  #info { margin-left: 5px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; }
+  #info {
+    margin-left: 5px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
   #info div { margin-bottom: 2px; }
 </style>
 </head>
@@ -35,6 +50,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 <script>
+const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs";
+
 function generateQR() {
   const ref = document.getElementById('ref').value;
   const batch = document.getElementById('batch').value;
@@ -44,22 +62,21 @@ function generateQR() {
   const roll_number = document.getElementById('roll_number').value;
   const order_number = document.getElementById('order_number').value;
 
-  // 生成一个唯一的 ID，用于识别面料数据
+  // 生成唯一 ID
   const id = "roll_" + Date.now();
 
-  // 生成二维码 URL，包含唯一的 ID
+  // 二维码 URL
   const qrUrl = `https://fabricsystem.vercel.app/view.html?id=${id}`;
 
   // 生成二维码
-  const qr = new QRious({
+  new QRious({
     element: document.getElementById('qr'),
     value: qrUrl,
-    size: 180 // 设置二维码的尺寸为适合 40mm 打印
+    size: 180
   });
 
   // 显示面料信息
-  const infoDiv = document.getElementById('info');
-  infoDiv.innerHTML = `
+  document.getElementById('info').innerHTML = `
     <div>Ref: ${ref}</div>
     <div>Batch: ${batch}</div>
     <div>Width: ${width}</div>
@@ -69,38 +86,29 @@ function generateQR() {
     <div>Order#: ${order_number}</div>
   `;
 
-  // 使用 Fetch API 将面料信息和二维码的 ID 写入到 Supabase
-  const data = {
-    id: id,
-    ref: ref,
-    batch: batch,
-    size: width,  // 替换为 width
-    color: color,
-    length: length,
-    roll_number: roll_number,
-    order_number: order_number
-  };
-
-  // Supabase API 调用，插入数据
-  fetch('https://nbzlglatwvomrhflqvgi.supabase.co/rest/v1/rolls', {
+  // 保存到 Supabase
+  fetch(`${SUPABASE_URL}/rest/v1/rolls`, {
     method: 'POST',
     headers: {
-      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs',
-      'Authorization': 'Bearer <eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs>',
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify({
+      id: id,
+      ref: ref,
+      batch: batch,
+      size: width,
+      color: color,
+      length: length,
+      roll_number: roll_number,
+      order_number: order_number
+    })
   })
-  .then(response => response.json())
-  .then(data => {
-    console.log('成功写入 Supabase:', data);
-    alert('二维码生成并保存到数据库！');
-  })
-  .catch((error) => {
-    console.error('写入失败:', error);
-    alert('写入数据失败，请查看控制台！');
-  });
+  .then(res => res.json())
+  .then(data => console.log("Saved to Supabase:", data))
+  .catch(err => console.error("Save failed:", err));
 }
 </script>
 
