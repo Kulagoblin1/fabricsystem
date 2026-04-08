@@ -8,12 +8,15 @@
         body { font-family: Arial, sans-serif; padding: 20px; }
         h2 { margin-bottom: 15px; }
         .info { margin-bottom: 10px; font-size: 16px; }
+        button { margin-top: 20px; padding: 8px 15px; }
     </style>
 </head>
 <body>
 
-<h2>Fabric Information</h2>
+<h2 id="title">Fabric Information</h2>
 <div id="info">加载中...</div>
+
+<button id="languageSwitch" onclick="switchLanguage()">Switch to Chinese</button>
 
 <script>
     // 替换为你自己的 Supabase 项目 URL 和 anon public key
@@ -25,13 +28,35 @@
     const rollId = params.get("id");
 
     if (!rollId) {
-        document.getElementById("info").innerText = "无效二维码";
+        document.getElementById("info").innerText = "Invalid QR Code";
         console.log("没有提供 id 参数");
     } else {
         fetchData(rollId);
     }
 
-    async function fetchData(id) {
+    let isEnglish = true; // 当前语言状态，默认英文
+
+    function switchLanguage() {
+        isEnglish = !isEnglish;  // 切换语言状态
+        updateLanguage();  // 更新页面显示
+    }
+
+    function updateLanguage() {
+        const title = document.getElementById("title");
+        const languageSwitchButton = document.getElementById("languageSwitch");
+
+        if (isEnglish) {
+            title.innerText = "Fabric Information";
+            languageSwitchButton.innerText = "Switch to Chinese";
+            fetchData(rollId, 'en');  // 获取英文数据
+        } else {
+            title.innerText = "面料信息";
+            languageSwitchButton.innerText = "切换为英文";
+            fetchData(rollId, 'cn');  // 获取中文数据
+        }
+    }
+
+    async function fetchData(id, language = 'en') {
         console.log("正在查询 ID:", id);
 
         try {
@@ -45,7 +70,7 @@
 
             if (!res.ok) {
                 console.error("请求失败，状态码:", res.status, await res.text());
-                document.getElementById("info").innerText = "加载数据失败";
+                document.getElementById("info").innerText = isEnglish ? "Failed to load data" : "加载数据失败";
                 return;
             }
 
@@ -53,23 +78,35 @@
             console.log("查询结果:", data);
 
             if (!data || data.length === 0) {
-                document.getElementById("info").innerText = "未找到数据";
+                document.getElementById("info").innerText = isEnglish ? "No data found" : "未找到数据";
             } else {
                 const d = data[0];
-                document.getElementById("info").innerHTML = `
-                    <div class="info">参考号: ${d.ref}</div>
-                    <div class="info">批次: ${d.batch}</div>
-                    <div class="info">尺寸: ${d.size}</div>
-                    <div class="info">颜色: ${d.color}</div>
-                    <div class="info">米数: ${d.length} M</div>
-                    <div class="info">卷号: ${d.roll_number}</div>
-                    <div class="info">订单号: ${d.order_number}</div>
-                `;
+                if (isEnglish) {
+                    document.getElementById("info").innerHTML = `
+                        <div class="info">Reference Number: ${d.ref}</div>
+                        <div class="info">Batch: ${d.batch}</div>
+                        <div class="info">Width: ${d.size}</div>
+                        <div class="info">Color: ${d.color}</div>
+                        <div class="info">Length: ${d.length} M</div>
+                        <div class="info">Roll Number: ${d.roll_number}</div>
+                        <div class="info">Order Number: ${d.order_number}</div>
+                    `;
+                } else {
+                    document.getElementById("info").innerHTML = `
+                        <div class="info">参考号: ${d.ref}</div>
+                        <div class="info">批次: ${d.batch}</div>
+                        <div class="info">幅宽: ${d.size}</div>
+                        <div class="info">颜色: ${d.color}</div>
+                        <div class="info">米数: ${d.length} M</div>
+                        <div class="info">卷号: ${d.roll_number}</div>
+                        <div class="info">订单号: ${d.order_number}</div>
+                    `;
+                }
             }
 
         } catch (err) {
             console.error("查询异常:", err);
-            document.getElementById("info").innerText = "加载数据异常";
+            document.getElementById("info").innerText = isEnglish ? "Data load error" : "加载数据异常";
         }
     }
 </script>
