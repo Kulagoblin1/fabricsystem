@@ -1,83 +1,71 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabric QR Generator</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        label { display: block; margin-top: 10px; }
-        input { margin-bottom: 5px; width: 200px; }
-        button { margin-top: 15px; padding: 8px 15px; margin-right: 10px; }
-        #qr { margin-top: 20px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fabric QR Generator</title>
+<style>
+  body { font-family: Arial; padding: 20px; }
+  #label { width: 70mm; height: 50mm; border: 1px solid #000; display: flex; align-items: center; justify-content: flex-start; padding: 5px; box-sizing: border-box; }
+  #qr { width: 40mm; height: 40mm; }
+  #info { margin-left: 5px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; }
+  #info div { margin-bottom: 2px; }
+</style>
 </head>
 <body>
 
 <h2>Fabric QR Generator</h2>
 
-<label>参考号 (ref): <input type="text" id="ref"></label>
-<label>批次 (batch): <input type="text" id="batch"></label>
-<label>尺寸 (size): <input type="text" id="size"></label>
-<label>颜色 (color): <input type="text" id="color"></label>
-<label>米数 (length, M): <input type="number" id="length"></label>
-<label>卷号 (roll_number): <input type="text" id="roll_number"></label>
-<label>订单号 (order_number): <input type="text" id="order_number"></label>
+<div>
+  <label>Ref: <input type="text" id="ref"></label><br>
+  <label>Batch: <input type="text" id="batch"></label><br>
+  <label>Width (mm): <input type="text" id="width"></label><br>
+  <label>Color: <input type="text" id="color"></label><br>
+  <label>Length (m): <input type="text" id="length"></label><br>
+  <label>Roll Number: <input type="text" id="roll_number"></label><br>
+  <label>Order Number: <input type="text" id="order_number"></label><br>
+  <button onclick="generateQR()">Generate QR</button>
+</div>
 
-<button id="generateBtn">生成二维码</button>
+<br>
+<div id="label">
+  <canvas id="qr"></canvas>
+  <div id="info"></div>
+</div>
 
-<canvas id="qr"></canvas>
-
+<script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 <script>
-    // 替换为你自己的 Supabase 项目 URL 和 anon public key
-    const SUPABASE_URL = "https://nbzlglatwvomrhflqvgi.supabase.co"; // 替换
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iemxnbGF0d3ZvbXJoZmxxdmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mjk4NTIsImV4cCI6MjA5MTIwNTg1Mn0.lxkTMgLBBFv5y2O1jGLZVGcE-MiaA3JV8-p50irSgBs"; // 替换
+function generateQR() {
+  const ref = document.getElementById('ref').value;
+  const batch = document.getElementById('batch').value;
+  const width = document.getElementById('width').value;
+  const color = document.getElementById('color').value;
+  const length = document.getElementById('length').value;
+  const roll_number = document.getElementById('roll_number').value;
+  const order_number = document.getElementById('order_number').value;
 
-    // 按钮点击事件
-    document.getElementById("generateBtn").addEventListener("click", generate);
+  // 生成二维码 URL
+  const qrUrl = `https://fabricsystem.vercel.app/view.html?id=${roll_number}`;
 
-    // 生成二维码函数
-    async function generate() {
-        const data = {
-            id: "roll_" + Date.now(),  // 自动生成一个唯一 ID
-            ref: document.getElementById("ref").value,
-            batch: document.getElementById("batch").value,
-            size: document.getElementById("size").value,
-            color: document.getElementById("color").value,
-            length: parseFloat(document.getElementById("length").value),
-            roll_number: document.getElementById("roll_number").value,
-            order_number: document.getElementById("order_number").value
-        };
+  // 生成二维码
+  const qr = new QRious({
+    element: document.getElementById('qr'),
+    value: qrUrl,
+    size: 180 // 调整为适合 40mm 打印
+  });
 
-        const qrUrl = `${window.location.origin}/view.html?id=${data.id}`;  // 生成包含 id 参数的 URL
-
-        // 用 QRious 库生成二维码
-        new QRious({ element: document.getElementById("qr"), value: qrUrl, size: 200 });
-
-        // 写入 Supabase 数据库
-        try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/rolls`, {
-                method: "POST",
-                headers: {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": "Bearer " + SUPABASE_KEY,
-                    "Content-Type": "application/json",
-                    "Prefer": "return=representation"
-                },
-                body: JSON.stringify(data)
-            });
-
-            const text = await res.text();
-            console.log("返回结果:", text);
-
-            if (res.ok) alert("✅ 写入成功");
-            else alert("❌ 写入失败，请查看控制台");
-        } catch (err) {
-            console.error("请求异常:", err);
-            alert("❌ 请求异常，请查看控制台");
-        }
-    }
+  // 显示面料信息
+  const infoDiv = document.getElementById('info');
+  infoDiv.innerHTML = `
+    <div>Ref: ${ref}</div>
+    <div>Batch: ${batch}</div>
+    <div>Width: ${width}</div>
+    <div>Color: ${color}</div>
+    <div>Length: ${length} m</div>
+    <div>Roll#: ${roll_number}</div>
+    <div>Order#: ${order_number}</div>
+  `;
+}
 </script>
 
 </body>
